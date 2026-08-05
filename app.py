@@ -167,6 +167,57 @@ def delete_from_watchlist(symbol):
     return jsonify({"success": True, "symbol": symbol})
 
 
+@app.route("/migrate", methods=["POST"])
+def migrate_schema():
+    """
+    One-time migration endpoint to add news_sentiment and recent_news columns
+    to existing watchlist table. Safe to call multiple times (uses IF NOT EXISTS).
+    """
+    try:
+        logger.info("Starting watchlist table migration...")
+        
+        # Add news_sentiment column
+        lakebase.run_write(
+            f"""
+            ALTER TABLE {WATCHLIST_TABLE_NAME} 
+            ADD COLUMN IF NOT EXISTS news_sentiment NUMERIC
+            """
+        )
+        logger.info("Added news_sentiment column")
+        
+        # Add recent_news column
+        lakebase.run_write(
+            f"""
+            ALTER TABLE {WATCHLIST_TABLE_NAME} 
+            ADD COLUMN IF NOT EXISTS recent_news JSONB
+            """
+        )
+        logger.info("Added recent_news column")
+        
+        # Verify the schema
+        rows = lakebase.run_query(
+            f"""
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = %s
+            ORDER BY ordinal_position
+            """,
+            (WATCHLIST_TABLE_NAME,)
+        )
+        
+        schema = [{"column": r["column_name"], "type": r["data_type"]} for r in rows]
+        
+        return jsonify({
+            "success": True,
+            "message": "Migration completed successfully",
+            "schema": schema
+        })
+        
+    except Exception as e:
+        logger.exception("Migration failed")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/watchlist", methods=["POST"])
 def add_to_watchlist():
     """
