@@ -12,14 +12,22 @@ import getpass
 
 w = WorkspaceClient()
 
-w.secrets.create_scope(scope="massive")
+try:
+    w.secrets.create_scope(scope="massive")
+except:
+    # scope already exists
+    pass
 w.secrets.put_secret(
     scope="massive",
     key="api-key",
     string_value=getpass.getpass("Paste your Massive API key: ")
 )
 
-w.secrets.create_scope(scope="database")
+try:
+    w.secrets.create_scope(scope="database")
+except:
+    # scope already exists
+    pass
 w.secrets.put_secret(
     scope="database",
     key="lakebase-url",
