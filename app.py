@@ -49,7 +49,9 @@ def ensure_table():
 
 
 def ensure_watchlist_table():
-    """Create the watchlist table in Lakebase if it doesn't exist yet."""
+    """Create the watchlist table in Lakebase if it doesn't exist yet.
+    Also ensures sentiment and news columns exist (migration support)."""
+    # Create table if it doesn't exist
     lakebase.run_write(
         f"""
         CREATE TABLE IF NOT EXISTS {WATCHLIST_TABLE_NAME} (
@@ -63,6 +65,19 @@ def ensure_watchlist_table():
         )
         """
     )
+    
+    # Add missing columns if table was created with old schema
+    # These operations are safe to run multiple times (IF NOT EXISTS)
+    try:
+        lakebase.run_write(
+            f"ALTER TABLE {WATCHLIST_TABLE_NAME} ADD COLUMN IF NOT EXISTS news_sentiment NUMERIC"
+        )
+        lakebase.run_write(
+            f"ALTER TABLE {WATCHLIST_TABLE_NAME} ADD COLUMN IF NOT EXISTS recent_news JSONB"
+        )
+    except Exception as e:
+        # Log but don't fail - columns might already exist
+        logger.warning(f"Column migration check: {e}")
 
 
 def _current_user_email() -> str:
