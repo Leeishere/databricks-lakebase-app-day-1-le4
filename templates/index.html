@@ -197,6 +197,30 @@
       color: #38a169;
     }
     
+    .delete-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+      background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(245, 101, 101, 0.3);
+    }
+    
+    .delete-btn:hover {
+      background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(245, 101, 101, 0.5);
+    }
+    
+    .delete-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 4px rgba(245, 101, 101, 0.3);
+    }
+    
     @media (max-width: 768px) {
       .container {
         padding: 24px;
@@ -212,6 +236,11 @@
       
       th, td {
         padding: 12px 8px;
+      }
+      
+      .delete-btn {
+        padding: 4px 8px;
+        font-size: 11px;
       }
     }
   </style>
@@ -236,6 +265,7 @@
           <th>Email</th>
           <th>Latest price</th>
           <th>Updated</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody id="watchlist-body"></tbody>
@@ -262,11 +292,44 @@
             ? Number(row.latest_price).toFixed(2)
             : "-";
           const updated = row.updated_at ? new Date(row.updated_at).toLocaleString() : "-";
+          
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "delete-btn";
+          deleteBtn.textContent = "Delete";
+          deleteBtn.onclick = () => deleteFromWatchlist(row.symbol);
+          
+          const actionCell = document.createElement("td");
+          actionCell.appendChild(deleteBtn);
+          
           tr.innerHTML = `<td>${row.symbol}</td><td>${row.email || "-"}</td><td>${price}</td><td>${updated}</td>`;
+          tr.appendChild(actionCell);
           watchlistBody.appendChild(tr);
         });
       } catch (err) {
         resultEl.textContent = "Failed to load watchlist: " + err;
+      }
+    }
+    
+    async function deleteFromWatchlist(symbol) {
+      if (!confirm(`Are you sure you want to remove ${symbol} from your watchlist?`)) {
+        return;
+      }
+      
+      resultEl.textContent = `Removing ${symbol}...`;
+      
+      try {
+        const resp = await fetch(`/watchlist/${symbol}`, {
+          method: "DELETE",
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          resultEl.textContent = "Error: " + (data.error || resp.statusText);
+          return;
+        }
+        resultEl.textContent = `Removed ${symbol} from watchlist`;
+        loadWatchlist();
+      } catch (err) {
+        resultEl.textContent = "Request failed: " + err;
       }
     }
 
