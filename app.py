@@ -56,6 +56,8 @@ def ensure_watchlist_table():
             symbol TEXT NOT NULL,
             email TEXT NOT NULL,
             latest_price NUMERIC,
+            news_sentiment NUMERIC,
+            recent_news JSONB,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             PRIMARY KEY (symbol, email)
         )
@@ -138,11 +140,11 @@ def sync_from_massive():
 
 @app.route("/watchlist", methods=["GET"])
 def get_watchlist():
-    """Return the current user's watchlist symbols, with their last known price."""
+    """Return the current user's watchlist symbols, with their last known price, sentiment, and news."""
     ensure_watchlist_table()
     email = _current_user_email()
     rows = lakebase.run_query(
-        f"SELECT symbol, email, latest_price, updated_at FROM {WATCHLIST_TABLE_NAME} "
+        f"SELECT symbol, email, latest_price, news_sentiment, recent_news, updated_at FROM {WATCHLIST_TABLE_NAME} "
         f"WHERE email = %s ORDER BY symbol ASC",
         (email,),
     )
@@ -197,20 +199,54 @@ def add_to_watchlist():
         # that still 200s with an empty result set) - don't add it.
         return jsonify({"error": f"No price data available for ticker: {symbol}"}), 400
 
+    # Fetch news and sentiment data
+    news_data = None
+    sentiment_score = None
+    try:
+        news_response = client.get_ticker_news(symbol, limit=5)
+        news_results = news_response.get("results", [])
+        if news_results:
+            import json as _json
+            news_data = _json.dumps(news_results)
+            # Calculate average sentiment from news articles
+            sentiment_scores = [
+                article.get("insights", [{}])[0].get("sentiment", "neutral")
+                for article in news_results
+                if article.get("insights")
+            ]
+            # Convert sentiment labels to numeric scores: positive=1, neutral=0, negative=-1
+            sentiment_map = {"positive": 1, "neutral": 0, "negative": -1}
+            numeric_sentiments = [
+                sentiment_map.get(s, 0) for s in sentiment_scores if s in sentiment_map
+            ]
+            if numeric_sentiments:
+                sentiment_score = sum(numeric_sentiments) / len(numeric_sentiments)
+    except Exception as e:
+        logger.warning(f"Failed to fetch news/sentiment for {symbol}: {e}")
+        # Continue without news data - price is still valid
+
     email = _current_user_email()
 
     lakebase.run_write(
         f"""
-        INSERT INTO {WATCHLIST_TABLE_NAME} (symbol, email, latest_price, updated_at)
-        VALUES (%s, %s, %s, now())
+        INSERT INTO {WATCHLIST_TABLE_NAME} (symbol, email, latest_price, news_sentiment, recent_news, updated_at)
+        VALUES (%s, %s, %s, %s, %s, now())
         ON CONFLICT (symbol, email) DO UPDATE
             SET latest_price = EXCLUDED.latest_price,
+                news_sentiment = EXCLUDED.news_sentiment,
+                recent_news = EXCLUDED.recent_news,
                 updated_at = EXCLUDED.updated_at
         """,
-        (symbol, email, price),
+        (symbol, email, price, sentiment_score, news_data),
     )
 
-    return jsonify({"symbol": symbol, "email": email, "latest_price": price})
+    return jsonify({
+        "symbol": symbol,
+        "email": email,
+        "latest_price": price,
+        "news_sentiment": sentiment_score,
+        "recent_news_count": len(news_response.get("results", [])) if news_response else 0
+    })
 
 
 def _extract_latest_price(data: dict) -> float | None:
