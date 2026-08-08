@@ -310,21 +310,14 @@
             sentiment = `<span style="color: ${color}; font-weight: 600;">${emoji} ${score.toFixed(2)}</span>`;
           }
           
-          // Format news count with click handler
-          let newsInfo = "-";
-          let newsArray = null;
-          if (row.recent_news) {
-            try {
-              newsArray = typeof row.recent_news === 'string' 
-                ? JSON.parse(row.recent_news) 
-                : row.recent_news;
-              const count = Array.isArray(newsArray) ? newsArray.length : 0;
-              if (count > 0) {
-                newsInfo = `<span class="news-link" data-symbol="${row.symbol}">${count} article${count !== 1 ? 's' : ''}</span>`;
-              }
-            } catch (e) {
-              newsInfo = "-";
-              newsArray = null;
+          // Format article count
+          let articleCount = "-";
+          if (row.article_count !== null && row.article_count !== undefined) {
+            const count = Number(row.article_count);
+            if (count > 0) {
+              articleCount = `<span style="font-weight: 600; color: #667eea;">${count}</span>`;
+            } else {
+              articleCount = "0";
             }
           }
           
