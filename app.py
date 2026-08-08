@@ -317,7 +317,7 @@ def add_to_watchlist():
         "email": email,
         "latest_price": price,
         "news_sentiment": sentiment_score,
-        "recent_news_count": len(news_response.get("results", [])) if news_response else 0
+        "article_count": article_count
     })
 
 
