@@ -163,7 +163,7 @@ def get_watchlist():
     ensure_watchlist_table()
     email = _current_user_email()
     rows = lakebase.run_query(
-        f"SELECT symbol, email, latest_price, news_sentiment, recent_news, updated_at FROM {WATCHLIST_TABLE_NAME} "
+        f"SELECT symbol, email, latest_price, updated_at, news_sentiment, article_count FROM {WATCHLIST_TABLE_NAME} "
         f"WHERE email = %s ORDER BY symbol ASC",
         (email,),
     )
