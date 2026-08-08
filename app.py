@@ -75,9 +75,12 @@ def ensure_watchlist_table():
         lakebase.run_write(
             f"ALTER TABLE {WATCHLIST_TABLE_NAME} ADD COLUMN IF NOT EXISTS article_count INTEGER"
         )
-        # Drop old recent_news column if it exists
+        # Drop old news/recent_news columns if they exist (legacy schema cleanup)
         lakebase.run_write(
             f"ALTER TABLE {WATCHLIST_TABLE_NAME} DROP COLUMN IF EXISTS recent_news"
+        )
+        lakebase.run_write(
+            f"ALTER TABLE {WATCHLIST_TABLE_NAME} DROP COLUMN IF EXISTS news"
         )
     except Exception as e:
         # Log but don't fail - columns might already exist
