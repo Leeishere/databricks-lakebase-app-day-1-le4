@@ -50,7 +50,7 @@ def ensure_table():
 
 def ensure_watchlist_table():
     """Create the watchlist table in Lakebase if it doesn't exist yet.
-    Also ensures sentiment and news columns exist (migration support)."""
+    Also ensures sentiment and article_count columns exist (migration support)."""
     # Create table if it doesn't exist
     lakebase.run_write(
         f"""
@@ -59,7 +59,7 @@ def ensure_watchlist_table():
             email TEXT NOT NULL,
             latest_price NUMERIC,
             news_sentiment NUMERIC,
-            recent_news JSONB,
+            article_count INTEGER,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             PRIMARY KEY (symbol, email)
         )
@@ -73,7 +73,11 @@ def ensure_watchlist_table():
             f"ALTER TABLE {WATCHLIST_TABLE_NAME} ADD COLUMN IF NOT EXISTS news_sentiment NUMERIC"
         )
         lakebase.run_write(
-            f"ALTER TABLE {WATCHLIST_TABLE_NAME} ADD COLUMN IF NOT EXISTS recent_news JSONB"
+            f"ALTER TABLE {WATCHLIST_TABLE_NAME} ADD COLUMN IF NOT EXISTS article_count INTEGER"
+        )
+        # Drop old recent_news column if it exists
+        lakebase.run_write(
+            f"ALTER TABLE {WATCHLIST_TABLE_NAME} DROP COLUMN IF EXISTS recent_news"
         )
     except Exception as e:
         # Log but don't fail - columns might already exist
@@ -266,14 +270,11 @@ def add_to_watchlist():
         return jsonify({"error": f"No price data available for ticker: {symbol}"}), 400
 
     # Fetch news and sentiment data
-    news_data = None
     sentiment_score = None
     try:
         news_response = client.get_ticker_news(symbol, limit=5)
         news_results = news_response.get("results", [])
         if news_results:
-            import json as _json
-            news_data = _json.dumps(news_results)
             # Calculate average sentiment from news articles
             sentiment_scores = [
                 article.get("insights", [{}])[0].get("sentiment", "neutral")
