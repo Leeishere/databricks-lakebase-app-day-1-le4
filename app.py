@@ -298,15 +298,15 @@ def add_to_watchlist():
 
     lakebase.run_write(
         f"""
-        INSERT INTO {WATCHLIST_TABLE_NAME} (symbol, email, latest_price, news_sentiment, recent_news, updated_at)
+        INSERT INTO {WATCHLIST_TABLE_NAME} (symbol, email, latest_price, news_sentiment, article_count, updated_at)
         VALUES (%s, %s, %s, %s, %s, now())
         ON CONFLICT (symbol, email) DO UPDATE
             SET latest_price = EXCLUDED.latest_price,
                 news_sentiment = EXCLUDED.news_sentiment,
-                recent_news = EXCLUDED.recent_news,
+                article_count = EXCLUDED.article_count,
                 updated_at = EXCLUDED.updated_at
         """,
-        (symbol, email, price, sentiment_score, news_data),
+        (symbol, email, price, sentiment_score, article_count),
     )
 
     return jsonify({
