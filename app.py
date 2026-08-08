@@ -271,9 +271,11 @@ def add_to_watchlist():
 
     # Fetch news and sentiment data
     sentiment_score = None
+    article_count = 0
     try:
         news_response = client.get_ticker_news(symbol, limit=5)
         news_results = news_response.get("results", [])
+        article_count = len(news_results)
         if news_results:
             # Calculate average sentiment from news articles
             sentiment_scores = [
