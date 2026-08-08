@@ -284,55 +284,6 @@
     const form = document.getElementById("stock-form");
     const resultEl = document.getElementById("result");
     const watchlistBody = document.getElementById("watchlist-body");
-    const modal = document.getElementById("newsModal");
-    const modalTitle = document.getElementById("modalTitle");
-    const newsContainer = document.getElementById("newsArticlesContainer");
-    const closeBtn = document.getElementsByClassName("close")[0];
-    
-    // Modal controls
-    closeBtn.onclick = function() {
-      modal.style.display = "none";
-    }
-    
-    window.onclick = function(event) {
-      if (event.target == modal) {
-        modal.style.display = "none";
-      }
-    }
-    
-    function showNewsModal(symbol, newsData) {
-      modalTitle.textContent = `Recent News for ${symbol}`;
-      newsContainer.innerHTML = "";
-      
-      if (!newsData || newsData.length === 0) {
-        newsContainer.innerHTML = "<p style='color: #718096;'>No news articles available.</p>";
-        modal.style.display = "block";
-        return;
-      }
-      
-      newsData.forEach((article) => {
-        const articleDiv = document.createElement("div");
-        articleDiv.className = "news-article";
-        
-        const title = article.title || "Untitled";
-        const url = article.article_url || article.url || "#";
-        const publisher = article.publisher?.name || "Unknown Publisher";
-        const publishedDate = article.published_utc 
-          ? new Date(article.published_utc).toLocaleString()
-          : "Date unknown";
-        const description = article.description || "";
-        
-        articleDiv.innerHTML = `
-          <h3><a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a></h3>
-          <div class="news-meta">${publisher} • ${publishedDate}</div>
-          ${description ? `<div class="news-description">${description}</div>` : ""}
-        `;
-        
-        newsContainer.appendChild(articleDiv);
-      });
-      
-      modal.style.display = "block";
-    }
 
     async function loadWatchlist() {
       try {
