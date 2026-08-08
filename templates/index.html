@@ -329,19 +329,9 @@
           const actionCell = document.createElement("td");
           actionCell.appendChild(deleteBtn);
           
-          tr.innerHTML = `<td>${row.symbol}</td><td>${row.email || "-"}</td><td>${price}</td><td>${sentiment}</td><td>${newsInfo}</td><td>${updated}</td>`;
+          tr.innerHTML = `<td>${row.symbol}</td><td>${row.email || "-"}</td><td>${price}</td><td>${sentiment}</td><td>${articleCount}</td><td>${updated}</td>`;
           tr.appendChild(actionCell);
           watchlistBody.appendChild(tr);
-          
-          // Attach click handler to news link after appending
-          if (newsArray && newsArray.length > 0) {
-            const newsLink = tr.querySelector('.news-link');
-            if (newsLink) {
-              newsLink.addEventListener('click', function() {
-                showNewsModal(row.symbol, newsArray);
-              });
-            }
-          }
         });
       } catch (err) {
         resultEl.textContent = "Failed to load watchlist: " + err;
